@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { DinosaurCard } from './components/DinosaurCard';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -9,8 +8,8 @@ import { Dashboard } from './components/Dashboard';
 import { Pricing } from './components/Pricing';
 import { Education } from './components/Education';
 import { BattleConsole } from './components/BattleConsole';
-import { DINOSAURS, ACHIEVEMENTS, ENVIRONMENTS, BASIC_ENVIRONMENTS } from './constants';
-import { generateDinosaurImage } from './services/geminiService';
+import { DINOSAURS, ENVIRONMENTS, BASIC_ENVIRONMENTS } from './constants';
+import { generateDinosaurImage, generateBattleCommentary } from './services/geminiService';
 import type { Dinosaur, UserStats, User, AppView } from './types';
 import { GameState } from './types';
 import { useSound } from './hooks/useSound';
@@ -24,56 +23,36 @@ interface BattleResult {
     simulationLogs: string[];
 }
 
-const calculateBattleResult = (dino1: Dinosaur, dino2: Dinosaur, environment: string): BattleResult => {
+const calculateBattleLogic = (dino1: Dinosaur, dino2: Dinosaur, environment: string): Omit<BattleResult, 'commentary'> => {
     let score1 = 0;
     let score2 = 0;
     const logs: string[] = ["INITIATING NEURAL LINK...", `BIOME DETECTED: ${environment.toUpperCase()}`];
 
     const massScore1 = Math.pow(dino1.size, 2.8) * 10; 
     const massScore2 = Math.pow(dino2.size, 2.8) * 10;
-    logs.push(`CALCULATING MASS: ${dino1.common} (${dino1.size}m) VS ${dino2.common} (${dino2.size}m)`);
+    logs.push(`CALCULATING MASS: ${dino1.common} VS ${dino2.common}`);
 
     const combatScore1 = Math.pow(dino1.attack, 2) * 15;
     const combatScore2 = Math.pow(dino2.attack, 2) * 15;
-    logs.push(`COMBAT POWER READINGS: ${dino1.attack}/10 VS ${dino2.attack}/10`);
 
-    const agilityScore1 = dino1.speed * 5;
-    const agilityScore2 = dino2.speed * 5;
+    score1 += massScore1 + combatScore1 + (dino1.speed * 5);
+    score2 += massScore2 + combatScore2 + (dino2.speed * 5);
 
-    const sizeRatio = dino1.size > dino2.size ? dino1.size / dino2.size : dino2.size / dino1.size;
-    
+    const sizeRatio = Math.max(dino1.size, dino2.size) / Math.min(dino1.size, dino2.size);
     if (sizeRatio > 2.5) {
-        logs.push("WARNING: MASSIVE SCALE MISMATCH DETECTED.");
-        if (dino1.size > dino2.size) score1 += 50000; 
-        else score2 += 50000;
+        logs.push("CRITICAL MASS MISMATCH DETECTED.");
+        if (dino1.size > dino2.size) score1 += 50000; else score2 += 50000;
     }
 
-    score1 += massScore1 + combatScore1 + agilityScore1;
-    score2 += massScore2 + combatScore2 + agilityScore2;
-
-    const critChance1 = 0.05 + (dino1.attack / 50);
-    const critChance2 = 0.05 + (dino2.attack / 50);
-    const isCrit1 = Math.random() < critChance1;
-    const isCrit2 = Math.random() < critChance2;
-
-    if (isCrit1) { score1 *= 1.5; logs.push(`CRITICAL STRIKE: ${dino1.common} LANDED VITAL HIT!`); }
-    if (isCrit2) { score2 *= 1.5; logs.push(`CRITICAL STRIKE: ${dino2.common} LANDED VITAL HIT!`); }
-
     if (environment.includes("Swamp") || environment.includes("River") || environment.includes("Ocean")) {
-        if (dino1.element === 'Water') { score1 *= 1.2; logs.push(`AQUATIC BUFF: ${dino1.common} HAS TERRAIN ADVANTAGE.`); }
-        if (dino2.element === 'Water') { score2 *= 1.2; logs.push(`AQUATIC BUFF: ${dino2.common} HAS TERRAIN ADVANTAGE.`); }
+        if (dino1.element === 'Water') score1 *= 1.25;
+        if (dino2.element === 'Water') score2 *= 1.25;
     }
 
     const winner = score1 >= score2 ? dino1 : dino2;
-    const loser = score1 >= score2 ? dino2 : dino1;
-    logs.push("SIMULATION STABILIZED.");
     logs.push(`VICTOR IDENTIFIED: ${winner.common.toUpperCase()}`);
 
-    let commentary = `The ${winner.common} dominated the arena with superior stats.`;
-    if (isCrit1 || isCrit2) commentary = `A legendary critical hit secured the victory for the ${winner.common}.`;
-    if (sizeRatio > 2.0 && winner.size > loser.size) commentary = `Sheer colossal size was the deciding factor. The ${loser.common} had no chance against such mass.`;
-
-    return { winner, commentary, simulationLogs: logs };
+    return { winner, simulationLogs: logs };
 };
 
 const App: React.FC = () => {
@@ -91,9 +70,8 @@ const App: React.FC = () => {
     const [battleEnvironment, setBattleEnvironment] = useState<string>('');
 
     const [userStats, setUserStats] = useState<UserStats>(() => {
-        const defaultStats = { wins: 0, losses: 0, currentStreak: 0, highestStreak: 0, dinosDiscovered: [], recentMatches: [] };
         const saved = localStorage.getItem('dino_stats');
-        return saved ? { ...defaultStats, ...JSON.parse(saved) } : defaultStats;
+        return saved ? JSON.parse(saved) : { wins: 0, losses: 0, currentStreak: 0, highestStreak: 0, dinosDiscovered: [], recentMatches: [] };
     });
 
     useEffect(() => { localStorage.setItem('dino_stats', JSON.stringify(userStats)); }, [userStats]);
@@ -104,11 +82,7 @@ const App: React.FC = () => {
         if (isThomas) setTimeout(() => playSound('win'), 500);
     };
 
-    const handleLogout = () => { 
-        setUser(null); 
-        setCurrentView('login'); 
-        setGameState(GameState.START); 
-    };
+    const handleLogout = () => { setUser(null); setCurrentView('login'); setGameState(GameState.START); };
 
     const startGame = useCallback(async () => {
         if (!user) return;
@@ -140,18 +114,24 @@ const App: React.FC = () => {
         }
     }, [playSound, user]);
 
-    const handleSelectDinosaur = (dino: Dinosaur) => {
+    const handleSelectDinosaur = async (dino: Dinosaur) => {
         if (!fighters || battleResult) return;
         playSound('click');
         setPlayerChoice(dino);
-        const result = calculateBattleResult(fighters[0], fighters[1], battleEnvironment);
-        setBattleResult(result);
+        
+        const baseResult = calculateBattleLogic(fighters[0], fighters[1], battleEnvironment);
+        const loser = baseResult.winner.common === fighters[0].common ? fighters[1] : fighters[0];
+        
         setIsSimulating(true);
+        
+        // Background task: get commentary while console runs
+        generateBattleCommentary(baseResult.winner, loser, battleEnvironment).then(commentary => {
+            setBattleResult({ ...baseResult, commentary });
+        });
     };
 
     const finalizeBattle = () => {
         if (!battleResult || !fighters || !playerChoice) return;
-        
         setIsSimulating(false);
         const isCorrect = playerChoice.common === battleResult.winner.common;
         const loser = battleResult.winner.common === fighters[0].common ? fighters[1] : fighters[0];
@@ -166,7 +146,6 @@ const App: React.FC = () => {
                 newStats.losses++;
                 newStats.currentStreak = 0;
             }
-            
             newStats.recentMatches = [{
                 timestamp: Date.now(),
                 winnerName: battleResult.winner.common,
@@ -175,6 +154,9 @@ const App: React.FC = () => {
                 environment: battleEnvironment
             }, ...newStats.recentMatches.slice(0, 19)];
             
+            if (!newStats.dinosDiscovered.includes(battleResult.winner.common)) {
+                newStats.dinosDiscovered.push(battleResult.winner.common);
+            }
             return newStats;
         });
 
@@ -209,23 +191,33 @@ const App: React.FC = () => {
                             <div className="w-full max-w-6xl mx-auto p-6 pt-20">
                                 {gameState === GameState.START && (
                                     <div className="h-full flex flex-col items-center justify-center py-20">
-                                        <h1 className="text-7xl font-black text-teal-400 mb-8 tracking-tighter text-center">DINO BATTLE</h1>
-                                        <button onClick={startGame} className="bg-teal-600 hover:bg-teal-500 text-white font-black px-12 py-5 rounded-full text-2xl shadow-2xl transition-transform hover:scale-110">START SIMULATION</button>
+                                        <h1 className="text-7xl font-black text-teal-400 mb-8 tracking-tighter text-center drop-shadow-[0_0_15px_rgba(45,212,191,0.5)]">DINO BATTLE</h1>
+                                        <button onClick={startGame} className="bg-teal-600 hover:bg-teal-500 text-white font-black px-12 py-5 rounded-full text-2xl shadow-2xl transition-transform hover:scale-110 active:scale-95">START SIMULATION</button>
                                     </div>
                                 )}
                                 {(gameState === GameState.BATTLE || gameState === GameState.RESULT) && fighters && (
                                     <div className="space-y-8">
-                                        {isSimulating && battleResult && (
+                                        
+                                        {!playerChoice && gameState === GameState.BATTLE && (
+                                            <div className="text-center animate-bounce mb-4 flex flex-col items-center">
+                                                <div className="text-teal-400 font-mono text-sm tracking-widest mb-2">TARGETS ACQUIRED</div>
+                                                <span className="text-5xl font-black text-yellow-500 tracking-widest bg-black/50 px-10 py-3 rounded-full border-2 border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.3)]">VERSUS</span>
+                                            </div>
+                                        )}
+
+                                        {isSimulating && (
                                             <div className="max-w-xl mx-auto">
-                                                <BattleConsole logs={battleResult.simulationLogs} onComplete={finalizeBattle} />
+                                                <BattleConsole logs={battleResult?.simulationLogs || ["INITIATING..."]} onComplete={finalizeBattle} />
                                             </div>
                                         )}
                                         
                                         {gameState === GameState.RESULT && battleResult && (
-                                            <div className="bg-gray-900/80 p-8 rounded-2xl border border-teal-500/50 animate-tada text-center">
-                                                <h2 className="text-5xl font-black text-white mb-2">{battleResult.winner.common} WINS!</h2>
-                                                <p className="text-teal-400 italic mb-6 text-xl">"{battleResult.commentary}"</p>
-                                                <button onClick={startGame} className="bg-white text-black font-black px-8 py-3 rounded-full hover:bg-teal-400 transition-colors">NEXT BATTLE</button>
+                                            <div className="bg-gray-900/80 p-8 rounded-2xl border-2 border-teal-500/50 animate-tada text-center shadow-[0_0_100px_rgba(20,184,166,0.2)]">
+                                                <h2 className="text-5xl font-black text-white mb-2">{battleResult.winner.common.toUpperCase()} WINS!</h2>
+                                                <div className="max-w-2xl mx-auto">
+                                                    <p className="text-teal-400 italic mb-6 text-xl font-medium">"{battleResult.commentary}"</p>
+                                                </div>
+                                                <button onClick={startGame} className="bg-white text-black font-black px-12 py-4 rounded-full hover:bg-teal-400 transition-all hover:scale-105 active:scale-95 shadow-xl">NEXT BATTLE</button>
                                             </div>
                                         )}
 
@@ -233,24 +225,26 @@ const App: React.FC = () => {
                                             <DinosaurCard
                                                 dinosaur={fighters[0]}
                                                 image={images[0]}
-                                                onSelect={!battleResult ? handleSelectDinosaur : undefined}
+                                                onSelect={!playerChoice ? handleSelectDinosaur : undefined}
                                                 showDetails={gameState === GameState.RESULT}
                                                 isWinner={battleResult?.winner.common === fighters[0].common}
+                                                isLoser={battleResult && battleResult.winner.common !== fighters[0].common}
                                             />
                                             <DinosaurCard
                                                 dinosaur={fighters[1]}
                                                 image={images[1]}
-                                                onSelect={!battleResult ? handleSelectDinosaur : undefined}
+                                                onSelect={!playerChoice ? handleSelectDinosaur : undefined}
                                                 showDetails={gameState === GameState.RESULT}
                                                 isWinner={battleResult?.winner.common === fighters[1].common}
+                                                isLoser={battleResult && battleResult.winner.common !== fighters[1].common}
                                             />
                                         </div>
                                     </div>
                                 )}
                             </div>
                         )}
-                        {currentView === 'pricing' && <Pricing onUpgrade={() => setUser(prev => prev ? {...prev, isPremium: true} : null)} isPremium={user.isPremium} />}
-                        {currentView === 'education' && <Education isPremium={user.isPremium} onUpgrade={() => setCurrentView('pricing')} />}
+                        {currentView === 'pricing' && <Pricing onUpgrade={() => setUser(prev => prev ? {...prev, isPremium: true} : null)} isPremium={user?.isPremium || false} />}
+                        {currentView === 'education' && <Education isPremium={user?.isPremium || false} onUpgrade={() => setCurrentView('pricing')} />}
                     </main>
                 </>
              )}
