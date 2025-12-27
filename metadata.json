@@ -1,5 +1,6 @@
+
 {
-  "name": "Battle of Dinosaurs",
-  "description": "A game where you pick the winning dinosaur in a prehistoric showdown. The game uses AI to generate realistic images and provides educational facts about the creatures after each battle.",
+  "name": "THE BATTLE OF DINOSAURS",
+  "description": "A high-fidelity prehistoric simulation game. Predict winners in legendary matchups and read AI-generated combat narratives.",
   "requestFramePermissions": []
 }

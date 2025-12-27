@@ -7,7 +7,7 @@ const NEGATIVE_PROMPT = "Negative: letterbox, black bars, cinematic bars, white 
 
 export const generateDinosaurImage = async (prompt: string, environment?: string): Promise<string> => {
   const envText = environment ? ` in a ${environment}` : '';
-  const cleanPrompt = `${prompt}${envText}. Cinematic 16:9 photorealistic nature documentary shot. No black bars. Full frame high quality. ${NEGATIVE_PROMPT}`;
+  const cleanPrompt = `${prompt}${envText}. Cinematic 16:9 photorealistic nature documentary shot. No black bars. Full frame. High definition details. ${NEGATIVE_PROMPT}`;
 
   try {
     const response = await ai.models.generateContent({
@@ -33,13 +33,12 @@ export const generateDinosaurImage = async (prompt: string, environment?: string
 
 export const generateBattleCommentary = async (winner: Dinosaur, loser: Dinosaur, environment: string): Promise<string> => {
   try {
-    const prompt = `Act as an epic prehistoric battle narrator for a game called "THE BATTLE OF DINOSAURS".
-    CONTEXT:
-    WINNER: ${winner.common} (Size: ${winner.size}m, Attack: ${winner.attack}/10)
-    LOSER: ${loser.common} (Size: ${loser.size}m, Attack: ${loser.attack}/10)
+    const prompt = `Act as an epic prehistoric battle narrator for the game "THE BATTLE OF DINOSAURS".
+    WINNER: ${winner.common} (${winner.size}m)
+    LOSER: ${loser.common} (${loser.size}m)
     ENVIRONMENT: ${environment}
     
-    TASK: Write a 1-sentence legendary combat summary (max 20 words). Focus on the physical environment and the winner's primary advantage (size, speed, or element). Make it sound like a cinematic nature documentary finale. No cliches.`;
+    TASK: Write a 1-sentence legendary combat summary (max 20 words). Describe the definitive moment of victory using the environment. Make it sound like a high-budget nature documentary.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -48,6 +47,6 @@ export const generateBattleCommentary = async (winner: Dinosaur, loser: Dinosaur
 
     return response.text?.trim() || `The ${winner.common} reigns supreme in the ${environment}.`;
   } catch (error) {
-    return `The ${winner.common} claims its territory with a display of absolute prehistoric power.`;
+    return `The ${winner.common} asserts absolute dominance over the ${loser.common} in the ${environment}.`;
   }
 };

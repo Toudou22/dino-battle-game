@@ -28,22 +28,22 @@ const calculateBattleLogic = (dino1: Dinosaur, dino2: Dinosaur, environment: str
     let score2 = 0;
     const logs: string[] = ["INITIATING NEURAL LINK...", `BIOME DETECTED: ${environment.toUpperCase()}`];
 
-    // Combat Math
-    const power1 = (Math.pow(dino1.size, 1.5) * 5) + (dino1.attack * 100);
-    const power2 = (Math.pow(dino2.size, 1.5) * 5) + (dino2.attack * 100);
+    // Combat Formula
+    const power1 = (Math.pow(dino1.size, 1.4) * 6) + (dino1.attack * 110);
+    const power2 = (Math.pow(dino2.size, 1.4) * 6) + (dino2.attack * 110);
     
-    score1 += power1 + (dino1.speed * 10);
-    score2 += power2 + (dino2.speed * 10);
+    score1 += power1 + (dino1.speed * 12);
+    score2 += power2 + (dino2.speed * 12);
 
-    // Environment Affinity
+    // Habitat Bonuses
     if (environment.toLowerCase().includes("river") || environment.toLowerCase().includes("ocean")) {
-        if (dino1.element === 'Water') { score1 += 500; logs.push(`${dino1.common.toUpperCase()} AQUATIC ADVANTAGE.`); }
-        if (dino2.element === 'Water') { score2 += 500; logs.push(`${dino2.common.toUpperCase()} AQUATIC ADVANTAGE.`); }
+        if (dino1.element === 'Water') score1 += 600;
+        if (dino2.element === 'Water') score2 += 600;
     }
 
     const winner = score1 >= score2 ? dino1 : dino2;
-    logs.push("SIMULATING LETHAL CONTACT...");
-    logs.push("TRAJECTORY CONFIRMED.");
+    logs.push("CALCULATING PHYSICAL VECTORS...");
+    logs.push("SIMULATING LETHAL ENGAGEMENT...");
     logs.push(`VICTOR IDENTIFIED: ${winner.common.toUpperCase()}`);
 
     return { winner, simulationLogs: logs };
@@ -116,10 +116,8 @@ const App: React.FC = () => {
         const logic = calculateBattleLogic(fighters[0], fighters[1], battleEnvironment);
         const loser = logic.winner.common === fighters[0].common ? fighters[1] : fighters[0];
         
-        // Parallel commentary generation
-        generateBattleCommentary(logic.winner, loser, battleEnvironment).then(story => {
-            setBattleResult({ ...logic, commentary: story });
-        });
+        const story = await generateBattleCommentary(logic.winner, loser, battleEnvironment);
+        setBattleResult({ ...logic, commentary: story });
     };
 
     const finalizeBattle = () => {
@@ -175,8 +173,8 @@ const App: React.FC = () => {
                                 {gameState === GameState.START && (
                                     <div className="h-full flex flex-col items-center justify-center py-20 text-center">
                                         <h1 className="text-8xl font-black text-teal-400 mb-2 tracking-tighter font-gaming drop-shadow-[0_0_20px_rgba(45,212,191,0.6)]">THE BATTLE</h1>
-                                        <h2 className="text-4xl font-bold text-amber-500 mb-8 tracking-widest font-gaming">OF DINOSAURS</h2>
-                                        <button onClick={startGame} className="bg-teal-600 hover:bg-teal-500 text-white font-black px-12 py-5 rounded-full text-2xl shadow-2xl transition-all hover:scale-110 active:scale-95 border-b-4 border-teal-800">ENTER SIMULATOR</button>
+                                        <h2 className="text-4xl font-bold text-amber-500 mb-8 tracking-widest font-gaming uppercase">Of Dinosaurs</h2>
+                                        <button onClick={startGame} className="bg-teal-600 hover:bg-teal-500 text-white font-black px-12 py-5 rounded-full text-2xl shadow-2xl transition-all hover:scale-110 active:scale-95 border-b-4 border-teal-800">LAUNCH SIMULATOR</button>
                                     </div>
                                 )}
 
@@ -184,7 +182,7 @@ const App: React.FC = () => {
                                     <div className="space-y-8">
                                         {!playerChoice && (
                                             <div className="flex flex-col items-center animate-bounce mb-4">
-                                                <div className="text-teal-400 font-gaming text-xs tracking-[0.4em] mb-2 uppercase opacity-70">PREDICT THE VICTOR</div>
+                                                <div className="text-teal-400 font-gaming text-xs tracking-[0.4em] mb-2 uppercase opacity-70">Detecting Potential Victor</div>
                                                 <div className="text-7xl font-black text-amber-500 bg-black/60 px-12 py-4 rounded-full border-2 border-amber-500/50 shadow-[0_0_40px_rgba(245,158,11,0.3)] font-gaming">VS</div>
                                             </div>
                                         )}
@@ -196,9 +194,9 @@ const App: React.FC = () => {
                                         )}
 
                                         {gameState === GameState.RESULT && battleResult && (
-                                            <div className="bg-gray-900/90 p-8 rounded-[2rem] border-2 border-teal-500/50 animate-tada text-center shadow-[0_0_120px_rgba(20,184,166,0.3)] relative overflow-hidden">
+                                            <div className="bg-gray-900/90 p-8 rounded-[2.5rem] border-2 border-teal-500/50 animate-tada text-center shadow-[0_0_120px_rgba(20,184,166,0.3)] relative overflow-hidden">
                                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-teal-500 to-transparent"></div>
-                                                <h3 className="text-teal-500 font-gaming text-xs tracking-widest mb-4">BATTLE CONCLUDED</h3>
+                                                <h3 className="text-teal-500 font-gaming text-xs tracking-widest mb-4">SIMULATION COMPLETE</h3>
                                                 <h2 className="text-7xl font-black text-white mb-4 font-gaming leading-tight uppercase">{battleResult.winner.common}</h2>
                                                 <div className="bg-black/40 p-6 rounded-2xl mb-8 border border-white/5 backdrop-blur-sm">
                                                     <p className="text-teal-100 text-2xl italic font-medium leading-relaxed">"{battleResult.commentary}"</p>
