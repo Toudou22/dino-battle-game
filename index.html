@@ -4,13 +4,14 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Battle of Dinosaurs</title>
+    <title>The Battle of Dinosaurs</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
       body {
-        background: linear-gradient(125deg, #000000 0%, #1a1c2c 25%, #4a1c40 50%, #1d4e56 75%, #000000 100%);
+        background: linear-gradient(135deg, #050505 0%, #0a1f1d 30%, #2d1b0a 60%, #050505 100%);
         background-size: 400% 400%;
-        animation: aurora 20s ease infinite;
+        animation: aurora 15s ease infinite;
         color: white;
         overflow-x: hidden;
         margin: 0;
@@ -19,14 +20,14 @@
         min-height: 100vh;
       }
 
-      /* Aurora Animation */
       @keyframes aurora {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
       }
 
-      /* Animations */
+      .font-gaming { font-family: 'Orbitron', sans-serif; }
+
       @keyframes tada {
         from { transform: scale3d(1, 1, 1); }
         10%, 20% { transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, -3deg); }
@@ -34,18 +35,19 @@
         40%, 60%, 80% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg); }
         to { transform: scale3d(1, 1, 1); }
       }
-      .animate-tada {
-        animation: tada 1s ease-in-out;
+      .animate-tada { animation: tada 0.5s ease-in-out; }
+
+      @keyframes combat-shake {
+        0%, 100% { transform: translate(0, 0); }
+        10%, 30%, 50%, 70%, 90% { transform: translate(-5px, 0); }
+        20%, 40%, 60%, 80% { transform: translate(5px, 0); }
       }
-      @keyframes shake {
-        10%, 90% { transform: translate3d(-1px, 0, 0); }
-        20%, 80% { transform: translate3d(2px, 0, 0); }
-        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-        40%, 60% { transform: translate3d(4px, 0, 0); }
-      }
-      .animate-shake {
-        animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
-      }
+      .shake-active { animation: combat-shake 0.3s linear infinite; }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: #000; }
+      ::-webkit-scrollbar-thumb { background: #14b8a6; border-radius: 10px; }
     </style>
   <script type="importmap">
 {
@@ -53,7 +55,9 @@
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0"
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.3.0"
   }
 }
 </script>
